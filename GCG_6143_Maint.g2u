@@ -1,0 +1,186 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("MES Connection Maintenance")
+Gui.Form..Size(6360,4305)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form.frame1.Create(Frame)
+Gui.Form.frame1.Size(5820,1620)
+Gui.Form.frame1.Position(105,165)
+Gui.Form.frame1.Caption("MES Configuration")
+Gui.Form.frame1.Anchor(15)
+Gui.Form.txt_ServerIP.Create(TextBox,"",True,3555,300,0,2115,285,True,0,"Arial",8,-2147483643,1)
+Gui.Form.txt_ServerIP.Parent("frame1")
+Gui.Form.txt_ServerIP.Anchor(13)
+Gui.Form.txt_ServerIP.ToolTip("192.168.1.1")
+Gui.Form.txt_db.Create(TextBox,"",True,3555,300,0,2115,690,True,0,"Arial",8,-2147483643,1)
+Gui.Form.txt_db.Parent("frame1")
+Gui.Form.txt_db.Anchor(13)
+Gui.Form.txt_db.ToolTip("database1")
+Gui.Form.lbl_ServerIP.Create(Label,"db Server IP Address:",True,1800,255,0,255,375,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lbl_ServerIP.Parent("frame1")
+Gui.Form.lbl_db.Create(Label,"Database:",True,1755,255,0,255,780,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lbl_db.Parent("frame1")
+Gui.Form.frame2.Create(Frame)
+Gui.Form.frame2.Size(5820,1125)
+Gui.Form.frame2.Position(105,1980)
+Gui.Form.frame2.Caption("Serial File Configuration")
+Gui.Form.frame2.Anchor(14)
+Gui.Form.txt_SerialFile.Create(TextBox,"",True,3555,300,0,2115,300,True,0,"Arial",8,-2147483643,1)
+Gui.Form.txt_SerialFile.Parent("frame2")
+Gui.Form.txt_SerialFile.Anchor(13)
+Gui.Form.txt_SerialFile.ToolTip("\\server\folder1\folder2\file.xlsx")
+Gui.Form.lbl_SerialFile.Create(Label,"File Path:",True,1770,255,0,255,375,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lbl_SerialFile.Parent("frame2")
+Gui.Form.lbl_SerialFile.DefaultValue("")
+Gui.Form.cmd_Save.Create(Button)
+Gui.Form.cmd_Save.Size(855,375)
+Gui.Form.cmd_Save.Position(2655,3180)
+Gui.Form.cmd_Save.Anchor(2)
+Gui.Form.cmd_Save.Caption("Save")
+Gui.Form.cmd_Save.Event(Click,cmd_Save)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+	'---Phase 1---
+	'This prject is designed to take job info [JOB, SUFFIX, PART NUMBER (no Rev), QTY_RUN] and enter it into a MS SQL db table (Order_Buffer)
+	'Data should be passed when a job is created (or Released). Check back with customer once they start this project back up again.
+	'There is a maint. table to store their db connection info
+	'---Phase 2---
+	'They want to read serial numbers from a spreadsheet. Current design is to allow the user to browse for the spreasheet
+	'This screen will come up during the WIP-FG process
+	
+	F.Intrinsic.Control.CallSub(SetIcon)
+	F.Intrinsic.Control.CallSub(Get_Data)
+	Gui.Form..Show
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.SetIcon.Start
+F.Intrinsic.Control.Try
+
+V.Local.sForm.Declare
+V.Local.bExists.Declare
+V.Local.sIcon.Declare
+V.Local.iCounter.Declare
+
+F.Intrinsic.String.Build("{0}\ART\gss2.ico",V.Caller.GlobalDir,v.Local.sIcon)
+F.Intrinsic.File.Exists(V.Local.sIcon, V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists.Not)
+    F.Intrinsic.String.Build("{0}\GAB\GAS\gss2.ico",V.Caller.PluginsDir,v.Local.sIcon)
+    F.Intrinsic.File.Exists(V.Local.sIcon, V.Local.bExists)
+    F.Intrinsic.Control.If(V.Local.bExists.Not)
+        F.Intrinsic.Control.ExitSub
+    F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+Gui.Form..Icon(V.Local.sIcon)
+
+'F.Intrinsic.UI.GetFormList(V.Local.sForm)
+'F.Intrinsic.String.Split(V.Local.sForm, "*!*", V.Local.sForm)
+
+'F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sForm.UBound, 1)
+'    Gui.[V.Local.sForm(V.Local.iCounter)]..Icon(V.Local.sIcon)
+'F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.SetIcon.End
+
+Program.Sub.Get_Data.Start
+F.Intrinsic.Control.Try
+	
+	V.Local.sSQL.Declare
+	V.Local.sRet.Declare
+	
+	F.ODBC.Connection!con.OpenCompanyConnection		
+	'ID 1 = server address
+	F.ODBC.Connection!con.ExecuteAndReturn("Select * From GCG_6143_MAINT Where ID = '1';",V.Local.sRet)
+	Gui.Form.txt_ServerIP.Text(V.Local.sRet)
+	'ID 2 = database
+	F.ODBC.Connection!con.ExecuteAndReturn("Select * From GCG_6143_MAINT Where ID = '2';",V.Local.sRet)
+	Gui.Form.txt_db.Text(V.Local.sRet)
+	'ID 3 = serial file path
+	F.ODBC.Connection!con.ExecuteAndReturn("Select * From GCG_6143_MAINT Where ID = '3';",V.Local.sRet)
+	Gui.Form.txt_SerialFile.Text(V.Local.sRet)
+	
+	F.ODBC.Connection!con.Close
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.Get_Data.End
+
+Program.Sub.cmd_Save_Click.Start
+F.Intrinsic.Control.Try
+	
+	V.Local.sSQL.Declare
+	V.Local.sRet.Declare
+	V.Local.iCount.Declare(Long,"0")
+	V.Local.sField.Declare
+	
+	'ID 1 = server address
+	'ID 2 = database
+	'ID 3 = serial file path
+		
+	F.ODBC.Connection!con.OpenCompanyConnection
+	
+	F.Intrinsic.Control.DoUntil(V.Local.iCount,=,"3")
+	F.Intrinsic.Math.Add(V.Local.iCount,1,V.Local.iCount)
+	
+	F.Intrinsic.Control.If(V.Local.iCount,=,1)
+		V.Local.sField.Set(V.Screen.Form!txt_ServerIP.Trim)
+	F.Intrinsic.Control.ElseIf(V.Local.iCount,=,2)
+		V.Local.sField.Set(V.Screen.Form!txt_db.Trim)
+	F.Intrinsic.Control.ElseIf(V.Local.iCount,=,3)
+		V.Local.sField.Set(V.Screen.Form!txt_SerialFile.Trim)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.String.Build("Select * From GCG_6143_MAINT Where ID = '{0}';",V.Local.iCount,V.Local.sSQL)
+	F.ODBC.Connection!con.ExecuteAndReturn(V.Local.sSQL,V.Local.sRet)
+	
+	F.Intrinsic.Control.If(V.Local.sRet.Trim,=,"")
+	
+		F.Intrinsic.String.Build("Update GCG_6143_MAINT Set Text = '{0}' Where ID = '{1}';",V.Local.sField,V.Local.iCount,V.Local.sSQL)
+		F.ODBC.Connection!con.Execute(V.Local.sSQL)
+	F.Intrinsic.Control.Else
+	
+		F.Intrinsic.String.Build("Insert Into GCG_6143_MAINT (ID, Text) Values('{0}','{1}');",V.Local.iCount,V.Local.sField,V.Local.sSQL)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.Loop
+	
+	F.ODBC.Connection!con.Close
+	
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmd_Save_Click.End
+
+Program.Sub.Form_UnLoad.Start
+	F.Intrinsic.Control.End
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.Error.Start
+	V.Local.sError.Declare
+	V.Local.iRet.Declare
+	V.Local.sSep.Declare
+	
+	F.Intrinsic.String.Build("-------------------------------------------------------------------------------------",,V.Local.sSep)
+	F.Intrinsic.String.Build("({5}-{6}){0}{7}{0}Project: {4}{0}{7}{0}Sub: {1}{0}Error: {2},{3}",V.Ambient.NewLine,V.Args.SubRoutine,V.Args.eNumber,V.Args.eDescription,V.Caller.ScriptFile,V.Ambient.Date,V.Ambient.Time,V.Local.sSep,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError,"Error",V.Local.iRet)
+	
+	F.Intrinsic.Control.CallSub(Form_UnLoad)
+Program.Sub.Error.End
